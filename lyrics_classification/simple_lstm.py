@@ -144,7 +144,7 @@ class SimpleLSTM(torch.nn.Module):
     def predict(self, X: torch.Tensor) -> torch.Tensor:
         H_t = self.forward(X)  # (N, L) -> (N, H)
         y_pred = self.W_hy(H_t)  # (N, H) -> (N, 1)
-        y_pred = torch.sigmoid(y_pred)  # (N, H) -> (N, 1)
+        y_pred = torch.softmax(y_pred)  # (N, H) -> (N, 1)
         return y_pred
 
     def training_step(self, X: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
@@ -191,6 +191,8 @@ def main():
     labels = [label for sent, label in DATA[:800]]
     tokenizer = Tokenizer(char_level=True)
     tokenizer.fit_on_texts(texts=sents)
+
+
     X = build_X(sents, tokenizer, MAX_LENGTH)
     y = build_y(labels)
 
@@ -216,7 +218,7 @@ def main():
     total = len(DATA[800:])
     for sent, y in DATA[800:]:
         y_pred = analyser(sent)
-        print(sent, y, y_pred)
+        print('VALIDATE',sent, y, y_pred)
         if (y_pred >= 0.5) and y:
             correct += 1
         elif (y_pred < 0.5) and not y:

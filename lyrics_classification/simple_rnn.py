@@ -118,7 +118,7 @@ class SimpleRNN(torch.nn.Module):
 
     def forward(self, X: torch.Tensor) -> torch.Tensor:
         """
-        :param X: (N, L=16)
+        :param X : (N, L=16)
         :return:
         """
         # 어떻게 할수 있을까?
@@ -151,7 +151,7 @@ class SimpleRNN(torch.nn.Module):
         y_pred = torch.sigmoid(y_pred)  # (N, 1) = N개의 문장에 대응하는 하나의 확률. 범위 = [0,1]
         # y_pred = (N, 1) or (N,)
         y_pred = torch.reshape(y_pred, y.shape)  # y_pred의 차원을 y의 차원과 동기화
-        loss: torch.Tensor = F.binary_cross_entropy(input=y_pred, target=y)  # (N, 1), (N, 1) -> (N, 1)
+        loss: torch.Tensor = F.cross_entropy(input=y_pred, target=y)  # (N, 1), (N, 1) -> (N, 1)
         loss = loss.sum()  # (N, 1) -> (1)
         return loss
 
@@ -160,7 +160,7 @@ class SimpleRNN(torch.nn.Module):
 EMBED_SIZE = 32
 HIDDEN_SIZE = 64  # RNN에 있는 뉴런의 개수.
 LR = 0.001
-EPOCHS = 300
+EPOCHS = 1
 
 # builders #
 def build_X(sents: List[str], tokenizer: Tokenizer) -> torch.Tensor:
@@ -180,16 +180,16 @@ class Anaylser:
 
     def __call__(self, text: str) -> float:
         X = build_X(sents=[text], tokenizer=self.tokenizer)
-        H_last = self.rnn.forward(X)  # (N, L) -> (N, H)
-        y_pred = self.rnn.W_hy(H_last)  # (N, H) * (?=H,?=1) -> (N, 1)
-        # y_pred = 범위? =[-inf, +inf]
-        # 그런데 우리가 원하는 건 확률.
+        H_last = self.rnn.forward(X)  # (N, L) -> (N, H) #
+        y_pred = self.rnn.W_hy(H_last)  # (N, H) * (?=H,?=1) -> (N, 1) #
+        # y_pred = 범위? =[-inf, +inf] #
+        # 그런데 우리가 원하는 건 확률. #
         y_pred = torch.sigmoid(y_pred)
         return y_pred.item()
 
 
 def main():
-    # 데이터셋을 구축#
+    # 데이터셋을 구축 #
     sents = [
         sent
         for sent, _ in DATA
@@ -201,21 +201,25 @@ def main():
     print(sents)
     print(labels)
 
-    # 이제 뭐해요?
-    # 경서님 - 토큰화 && 정수인코딩.
+    # 이제 뭐해요? #
+    # 경서님 - 토큰화 && 정수인코딩. #
     tokenizer = Tokenizer(char_level=True)
-    tokenizer.fit_on_texts(texts=sents)  # 정수인코딩 학습
-    # seqs = tokenizer.texts_to_sequences(texts=sents)
-    # for seq in seqs:
-    #     print(seq)
+    tokenizer.fit_on_texts(texts=sents)  # 정수인코딩 학습 #
+    seqs = tokenizer.texts_to_sequences(texts=sents)
 
-    # 그럼 이제 뭐해요?
-    # 정수인코딩의 나열의 길이가 다 다르다
-    # 문제: 하나의 행렬 연산으로 다 계산할 수가 없다.
-    # 패딩을 해서, 나열의 길이를 통일한다.
-    # seqs = pad_sequences(sequences=seqs, padding="post", value=0)
-    # for seq in seqs:
-    #     print(seq)
+    for seq in seqs:
+        print('seq', seq)
+        break
+
+
+    # 그럼 이제 뭐해요? #
+    # 정수인코딩의 나열의 길이가 다 다르다 #
+    # 문제: 하나의 행렬 연산으로 다 계산할 수가 없다. #
+    # 패딩을 해서, 나열의 길이를 통일한다. #
+    seqs = pad_sequences(sequences=seqs, padding="post", value=0)
+    for seq in seqs:
+        print(seq)
+
     # 제일 길이가 긴 문장 = 16 = L.
 
     #  이제 뭐하죠?  패딩까지 마쳤다.
@@ -226,10 +230,11 @@ def main():
     # 그것을 바라지 않는다.
     # 1. one-hot 2. 임베딩 벡터.
     # e.g. [1, 2, 3] -> [[...], [...], [...]]
-    #그런 벡터 표현을 학습해서 사용하는 것이 적절.
+    # 그런 벡터 표현을 학습해서 사용하는 것이 적절
     # 경서님 - 중복되지 않은 토큰의 개수
     # = 어휘속에 있는 고유한 단어의 개수 = 학습하고자는 임베딩 벡터의 개수
     # = 어휘의 크기.
+
     vocab_size = len(tokenizer.word_index.keys())
     vocab_size += 1  # 왜 이걸 해줘야할까?
     # 경서님 - 0으로 패딩을 했기때문에, 패딩 토큰의 임베딩 벡터도 학습을 해야한다.
@@ -269,9 +274,6 @@ def main():
         print(epoch, "-->", loss.item())
 
 
-
-
-
     # 이제 ㅜ머해요?
     # 로스 계산하면 끝?
     # 승환님 - 로스를 최소화.
@@ -291,6 +293,19 @@ def main():
     print("#### TEST ####")
     sent = "나는 자연어처리가 좋아"
     print(sent, "->", analyser(sent))
+
+    print("##### training acc ####")
+    correct = 0
+    total = len(DATA[800:])
+    for sent, y in DATA[800:]:
+        y_pred = analyser(sent)
+        print('VALIDATE', sent, y, y_pred)
+        if (y_pred >= 0.5) and y:
+            correct += 1
+        elif (y_pred < 0.5) and not y:
+            correct += 1
+
+    print("training acc:", correct / total)
 
 
 if __name__ == '__main__':

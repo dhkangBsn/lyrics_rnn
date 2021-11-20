@@ -12,6 +12,6 @@
         Model : LSTM
         Input : 라벨링된 이별노래 가사 Dataset
         Output : 이별노래 가사 Label
-        Test Acc : 약 83%
+        Val Acc : 좋지 않음
     </pre>
 </div>
