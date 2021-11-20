@@ -7,11 +7,3 @@
         <li>도출된 라벨링 벡터를 이용하여 다시 각 가사에 대한 LSTM을 수행한다.</li>
     </ol>
 </div>
-<div>
-    <pre>
-        Model : LSTM
-        Input : 라벨링된 이별노래 가사 Dataset
-        Output : 이별노래 가사 Label
-        Test Acc : 약 83%
-    </pre>
-</div>
